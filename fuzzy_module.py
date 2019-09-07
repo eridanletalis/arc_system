@@ -211,7 +211,7 @@ def gbellmf(value, concentration, slope, maximum):
     :return: значение функции принадлежности
     """
 
-    assert int(concentration) != 0
+    assert concentration != 0.0
 
     return 1 / (1 + abs((value - maximum) / concentration)** (2 * slope))
 
@@ -227,7 +227,48 @@ def gaussmf(value, concentration, maximum, gain=1.0):
     :return:
     """
 
-    assert int(concentration) != 0
+    assert maximum != 0.0
 
     expression = - ((value - concentration) ** 2) / (2 * (maximum ** 2))
     return np.exp(gain*expression)
+
+def fuzzification(value, mfs):
+    """
+    фаззификатор для случая одной переменной
+    :param value: вход
+    :param mfs: список словарей функций принадлежности и параметров
+    :return: список значений
+    """
+
+    a = []
+    for func in mfs:
+        if func["name"] == "gaussmf":
+            x = gaussmf(float(value),
+                        float(func["concentration"]),
+                        float(func["maximum"]),
+                        float(func["gain"]))
+            a.append(x)
+
+    return a
+
+def simple_conclusuion(A, C):
+    """
+    Функция простого нечёткого вывода для случая плоских условий
+    :param A: список значений первой функции принадлежности
+    :param C: список значений выхода
+    :return: чёткий вывод
+    """
+
+    assert len(A) == len(C)
+
+    num = 0.0
+    denum = 0.0
+
+    for i in range(len(A)):
+        num += A[i]*C[i]
+        denum += A[i]
+
+    if denum != 0:
+        return num/denum
+    else:
+        return np.inf
