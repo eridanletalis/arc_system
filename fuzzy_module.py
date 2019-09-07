@@ -1,7 +1,10 @@
+
+
 """
 Базовые алгоритмы, используемые при нечётких вычислениях
 """
 
+import numpy as np
 
 def test_variables(a, b=0.0):
     if a > 1 or a < 0 or type(a) not in [float, int]:
@@ -73,38 +76,32 @@ def colormetn_and(a, b):
 # Описание функций принадлежности
 
 
-def spike_function(value, lo, hi):
+def spike_function(value, lo, hi, cntr=None):
     """
     Функция задаёт функцию принадлежности в виде треугольника. lo и hi задают базовые вершины треугольника.
-    Высшая точка задёся как hi/2
+    Высшая точка задёся как hi - lo /2
 
     :param value: текущее значение
     :param lo: левая вершина треугольника
     :param hi:  правая вершина треугольника
+    :param cntr: центр треугольника. Если не указан, значит треугольник равносторонний
     :return: значение функции принадлежности для текущего value
     """
 
-    value += (-lo)  # уменьшим текущее значение на значение минимального порога
+    assert hi > lo
 
-    # преобразование для вершин в зависимости от того, где они расположены
-    if lo < 0 and hi < 0:
-        hi = -(hi - lo)
-    elif lo < 0 and hi > 0:
-        hi += lo
-    elif lo > 0 and hi > 0:
-        hi -= lo
+    if cntr is None:
+        cntr = (hi + lo) * 0.5
 
-    peak = hi * 0.5
+    assert hi > cntr
+    assert lo < cntr
 
-    lo = 0.0
-
-    if value < peak:
-        return value / peak
-    elif value > peak:
-        return (hi - value) / peak
-
-    return 1.0
-
+    if value > hi or value < lo:
+        return 0.0
+    if value <= cntr:
+        return (value - lo) / (cntr - lo)
+    if value >= cntr:
+        return (hi - value) / (hi - cntr)
 
 def plate_function(value, lo, lo_plat, hi_plat, hi):
     """
@@ -118,30 +115,18 @@ def plate_function(value, lo, lo_plat, hi_plat, hi):
     :return: значение функции приналжежности для текущего value
     """
 
-    value += (-lo)
+    assert lo <= lo_plat
+    assert lo_plat <= hi_plat
+    assert hi_plat <= hi
 
-    if lo < 0.0:
-        lo_plat += -lo
-        hi_plat += -lo
-        hi += -lo
-        lo = 0
-    else:
-        lo_plat -= lo
-        hi_plat -= lo
-        hi = lo
-        lo = 0
-
-    upslope = 1.0 / (lo_plat - lo)
-    downslope = 1.0 / (hi - hi_plat)
-
-    if value < lo:
+    if value < lo and value > hi:
         return 0.0
-    elif value > hi:
+    if value >= lo_plat and value <= hi_plat:
         return 1.0
-    elif value >= lo_plat and value <= hi_plat:
-        return 1.0
-    elif value < lo_plat:
-        return (value - lo) * upslope
-    elif value > hi_plat:
-        return (hi - value) * downslope
+    if value > lo and value < lo_plat:
+        return (value - lo) / (lo_plat - lo)
+    if value > hi_plat and value < hi:
+        return (hi - value) / (hi - hi_plat)
+
+
     return 0.0
