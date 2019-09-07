@@ -1,10 +1,9 @@
-
-
 """
 Базовые алгоритмы, используемые при нечётких вычислениях
 """
 
 import numpy as np
+
 
 def test_variables(a, b=0.0):
     if a > 1 or a < 0 or type(a) not in [float, int]:
@@ -79,6 +78,8 @@ def colormetn_and(a, b):
 def spike_function(value, lo, hi, cntr=None):
     """
     Функция задаёт функцию принадлежности в виде треугольника. lo и hi задают базовые вершины треугольника.
+    использующиеся для задания неопределенностей типа: «приблизительно равно»,
+     «среднее значение», «расположен в интервале», «подобен объекту», «похож на предмет» и т.п.
     Высшая точка задёся как hi - lo /2
 
     :param value: текущее значение
@@ -103,10 +104,20 @@ def spike_function(value, lo, hi, cntr=None):
     if value >= cntr:
         return (hi - value) / (hi - cntr)
 
+
+def trimf(value, lo, hi, cntr=None):
+    """
+    Синоним для spike_function
+    """
+
+    return spike_function(value, lo, hi, cntr)
+
+
 def plate_function(value, lo, lo_plat, hi_plat, hi):
     """
     Функция задаёт функцию принадлежности в форме трапеции.
-
+    использующиеся для задания неопределенностей типа: «приблизительно равно», «среднее значение»,
+    «расположен в интервале», «подобен объекту», «похож на предмет» и т.п.
     :param value: текущее значение
     :param lo: левое нижнее значение трапеции
     :param lo_plat: левое верхнее значение трапеции
@@ -128,5 +139,95 @@ def plate_function(value, lo, lo_plat, hi_plat, hi):
     if value > hi_plat and value < hi:
         return (hi - value) / (hi - hi_plat)
 
-
     return 0.0
+
+def trapmf(value, lo, lo_plat, hi_plat, hi):
+    """
+    Синоним для plate_function
+    """
+
+    return plate_function(value, lo, lo_plat, hi_plat, hi)
+
+def smf(value, lo, hi):
+    """
+    Квадратичный S-сплайн
+    использующиеся для задания неопределенностей типа: «большое количество», «большое значение»,
+     «значительная величина», «высокий уровень» и т.п.
+
+    :param value: текущее значение
+    :param lo: левая граница
+    :param hi: правая граница
+    :return: значение функции принадлежности
+    """
+
+    assert lo < hi
+
+    cntr = (lo + hi) * 0.5
+
+    if value <= lo:
+        return 0.0
+    if value >= hi:
+        return 1.0
+    if value <= cntr:
+        return 2 * ((value - lo) ** 2) / (hi - lo) ** 2
+    if value > cntr:
+        return 1 - (2 * (value - lo) ** 2) / (hi - lo) ** 2
+
+
+def zmf(value, lo, hi):
+    """
+    Квадратичный Z-сплайн
+    использующиеся для задания неопределенностей типа: «большое количество», «большое значение»,
+     «значительная величина», «высокий уровень» и т.п.
+    :param value: текущее значение
+    :param lo: левая граница
+    :param hi: правая граница
+    :return: значение функции принадлежности
+    """
+
+    assert lo < hi
+
+    cntr = (lo + hi) * 0.5
+
+    if value <= lo:
+        return 1.0
+    if value >= hi:
+        return 0.0
+    if value < cntr:
+        return 1 - (2 * (value - lo) ** 2) / (hi - lo) ** 2
+    if value > cntr:
+        return 2 * ((value - lo) ** 2) / (hi - lo) ** 2
+
+def gbellmf(value, concentration, slope, maximum):
+    """
+    Колоколообразная функция принадлежности
+    использующиеся для задания неопределенностей типа: «приблизительно в пределах от и до», «примерно равно», «около»
+    К данному типу функций принадлежности можно отнести целый класс кривых, которые по своей форме напоминают колокол,
+    сглаженную трапецию или букву "П".
+    :param value: текущее значение
+    :param concentration: коэффициент концентрации функции принадлежности
+    :param slope: коэффициент крутизны функции принадлежности
+    :param maximum: координата максимума функции принадлежности
+    :return: значение функции принадлежности
+    """
+
+    assert int(concentration) != 0
+
+    return 1 / (1 + abs((value - maximum) / concentration)** (2 * slope))
+
+def gaussmf(value, concentration, maximum, gain=1.0):
+    """
+    Гауссовская функция принадлежности
+    использующиеся для задания неопределенностей типа: «приблизительно в пределах от и до», «примерно равно», «около»
+    К данному типу функций принадлежности можно отнести целый класс кривых, которые по своей форме напоминают колокол,
+    сглаженную трапецию или букву "П".
+    :param value: текущее значение
+    :param concentration: коэффициент концентрации функции принадлежности
+    :param maximum: координата максимума функции принадлежности
+    :return:
+    """
+
+    assert int(concentration) != 0
+
+    expression = - ((value - concentration) ** 2) / (2 * (maximum ** 2))
+    return np.exp(gain*expression)
